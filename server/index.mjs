@@ -88,6 +88,10 @@ app.use((error, _request, response, _next) => {
 
 await initDb()
 
-app.listen(port, () => {
-  console.log(`ExamBuddy API listening on ${port}`)
-})
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`ExamBuddy API listening on ${port}`)
+  })
+}
+
+export default app
