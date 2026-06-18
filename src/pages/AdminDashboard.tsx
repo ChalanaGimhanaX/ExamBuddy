@@ -18,16 +18,15 @@ interface AdminDashboardProps {
   importMode: ImportMode
   adminMessage: string
   isDarkMode: boolean
+  isImportSubmitting: boolean
+  hasQuestionBankHydrated: boolean
   onToggleDark: () => void
   onChangeImportText: (text: string) => void
   onChangeImportMode: (mode: ImportMode) => void
-  onImport: () => void
+  onImport: () => Promise<void>
   onClearQuestions: () => void
-  onReset: () => void
   onClearAnalytics: () => void
   onLogout: () => void
-  onPushToCloud: () => void
-  onPullFromCloud: () => void
 }
 
 function buildDistribution(items: string[]) {
@@ -58,16 +57,15 @@ export default function AdminDashboard({
   importMode,
   adminMessage,
   isDarkMode,
+  isImportSubmitting,
+  hasQuestionBankHydrated,
   onToggleDark,
   onChangeImportText,
   onChangeImportMode,
   onImport,
   onClearQuestions,
-  onReset,
   onClearAnalytics,
   onLogout,
-  onPushToCloud,
-  onPullFromCloud,
 }: AdminDashboardProps) {
   const navigate = useNavigate()
 
@@ -160,7 +158,7 @@ export default function AdminDashboard({
             </svg>
           </div>
           <div>
-            <p className="eyebrow">ExamBuddy</p>
+            <p className="eyebrow">ExamHelp</p>
             <h1 className="admin-title">Admin Dashboard</h1>
           </div>
         </div>
@@ -221,9 +219,12 @@ export default function AdminDashboard({
               <p className="eyebrow">Content Management</p>
               <h2>Import Questions</h2>
               <p style={{ color: 'var(--muted)', marginTop: '4px', fontSize: '0.9rem' }}>
-                Upload files, paste content, or use templates to add questions
+                Upload files, paste content, then submit directly to Firebase
               </p>
             </div>
+            <span className="pill">
+              {hasQuestionBankHydrated ? 'Firebase synced' : 'Syncing Firebase'}
+            </span>
           </div>
 
           <FileImporter
@@ -232,26 +233,12 @@ export default function AdminDashboard({
             onChangeText={onChangeImportText}
             onChangeMode={onChangeImportMode}
             onImport={onImport}
+            submitLabel={isImportSubmitting ? 'Submitting...' : 'Submit'}
+            isSubmitting={isImportSubmitting}
             message={adminMessage}
           />
 
           <div className="admin-danger-zone">
-            <button className="primary-button" type="button" onClick={onPushToCloud}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              Push to Cloud
-            </button>
-            <button className="primary-button" type="button" onClick={onPullFromCloud}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Pull from Cloud
-            </button>
             <button className="ghost-button" type="button" onClick={onClearQuestions}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
@@ -259,13 +246,6 @@ export default function AdminDashboard({
                 <line x1="12" y1="9" x2="18" y2="15" />
               </svg>
               Clear Questions
-            </button>
-            <button className="secondary-button" type="button" onClick={onReset}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="1 4 1 10 7 10" />
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-              </svg>
-              Reset to Demo Content
             </button>
             <button className="ghost-button" type="button" onClick={onClearAnalytics}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

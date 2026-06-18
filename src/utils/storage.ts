@@ -46,21 +46,8 @@ export function getUnlockedSubjectIds(
   questionBank: QuestionBank,
   progress: QuizProgress,
 ) {
-  const unlocked: string[] = []
-
-  questionBank.subjects.forEach((subject, index) => {
-    if (index === 0) {
-      unlocked.push(subject.id)
-      return
-    }
-
-    const previousSubject = questionBank.subjects[index - 1]
-    if (progress[previousSubject.id]?.submitted) {
-      unlocked.push(subject.id)
-    }
-  })
-
-  return unlocked
+  void progress
+  return questionBank.subjects.map((subject) => subject.id)
 }
 
 export function getQuestionCount(questionBank: QuestionBank) {

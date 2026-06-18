@@ -64,7 +64,7 @@ export default function AdminLogin({ isAuth, onLogin, isDarkMode, onToggleDark }
                 </defs>
               </svg>
             </div>
-            <h1>ExamBuddy</h1>
+            <h1>ExamHelp</h1>
             <p className="branding-tagline">Administration Portal</p>
 
             <div className="branding-features">

@@ -1,71 +1,105 @@
-import { initializeApp } from 'firebase/app'
-import { getAnalytics } from 'firebase/analytics'
-import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore'
-import type { QuestionBank, AnalyticsStore, QuizProgress } from '../types'
+import type { AnalyticsStore, QuestionBank, QuizProgress } from '../types'
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "exambuddy-f343c.firebaseapp.com",
-  projectId: "exambuddy-f343c",
-  storageBucket: "exambuddy-f343c.firebasestorage.app",
-  messagingSenderId: "620750408789",
-  appId: "1:620750408789:web:01784027493d724da298dc",
-  measurementId: "G-WKC45Y15S6"
-};
+const API_BASE = '/api'
+const POLL_INTERVAL_MS = 4000
 
-export const app = initializeApp(firebaseConfig)
-export const analytics = getAnalytics(app)
-export const db = getFirestore(app)
+async function getJson<T>(path: string): Promise<T | null> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      Accept: 'application/json',
+    },
+  })
 
-// --- Live DB Listeners ---
+  if (response.status === 404) {
+    return null
+  }
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`)
+  }
+
+  return (await response.json()) as T
+}
+
+async function putJson(path: string, body: unknown) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`)
+  }
+}
+
+function createPollingSubscription<T>(
+  path: string,
+  callback: (value: T | null) => void,
+) {
+  let disposed = false
+  let lastSnapshot = ''
+
+  const poll = async () => {
+    try {
+      const value = await getJson<T>(path)
+      if (disposed) {
+        return
+      }
+
+      const serialized = JSON.stringify(value)
+      if (serialized !== lastSnapshot) {
+        lastSnapshot = serialized
+        callback(value)
+      }
+    } catch (error) {
+      if (!disposed) {
+        console.error(`Polling failed for ${path}`, error)
+      }
+    }
+  }
+
+  void poll()
+  const interval = window.setInterval(() => {
+    void poll()
+  }, POLL_INTERVAL_MS)
+
+  return () => {
+    disposed = true
+    window.clearInterval(interval)
+  }
+}
 
 export function listenToQuestionBank(callback: (bank: QuestionBank | null) => void) {
-  const docRef = doc(db, 'examBuddy', 'globalQuestionBank')
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      callback(docSnap.data() as QuestionBank)
-    } else {
-      callback(null)
-    }
-  })
+  return createPollingSubscription<QuestionBank>('/question-bank', callback)
 }
 
-export function listenToAnalytics(callback: (analytics: AnalyticsStore | null) => void) {
-  const docRef = doc(db, 'examBuddy', 'globalAnalytics')
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      callback(docSnap.data() as AnalyticsStore)
-    } else {
-      callback(null)
-    }
-  })
+export function listenToAnalytics(
+  callback: (analytics: AnalyticsStore | null) => void,
+) {
+  return createPollingSubscription<AnalyticsStore>('/analytics', callback)
 }
 
-export function listenToQuizProgress(visitorId: string, callback: (progress: QuizProgress | null) => void) {
-  const docRef = doc(db, 'examBuddy', `progress_${visitorId}`)
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      callback(docSnap.data() as QuizProgress)
-    } else {
-      callback(null)
-    }
-  })
+export function listenToQuizProgress(
+  visitorId: string,
+  callback: (progress: QuizProgress | null) => void,
+) {
+  return createPollingSubscription<QuizProgress>(
+    `/quiz-progress/${encodeURIComponent(visitorId)}`,
+    callback,
+  )
 }
-
-// --- Live DB Writers ---
 
 export async function saveQuestionBankToDB(questionBank: QuestionBank) {
-  const docRef = doc(db, 'examBuddy', 'globalQuestionBank')
-  await setDoc(docRef, questionBank)
+  await putJson('/question-bank', questionBank)
 }
 
 export async function saveAnalyticsToDB(analyticsStore: AnalyticsStore) {
-  const docRef = doc(db, 'examBuddy', 'globalAnalytics')
-  await setDoc(docRef, analyticsStore)
+  await putJson('/analytics', analyticsStore)
 }
 
 export async function saveQuizProgressToDB(visitorId: string, progress: QuizProgress) {
-  const docRef = doc(db, 'examBuddy', `progress_${visitorId}`)
-  await setDoc(docRef, progress)
+  await putJson(`/quiz-progress/${encodeURIComponent(visitorId)}`, progress)
 }

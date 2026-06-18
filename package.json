@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "node server/index.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start:api": "node server/index.mjs"
   },
   "dependencies": {
-    "firebase": "^12.11.0",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.0"

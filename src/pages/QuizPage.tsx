@@ -11,7 +11,6 @@ interface QuizPageProps {
   quizMessage: string
   isDarkMode: boolean
   onToggleDark: () => void
-  unlockedSubjectIds: string[]
   activeSubject: QuizSubject | undefined
   handleSelectAnswer: (subjectId: string, questionId: string, optionId: string) => void
   handleSubmitQuestion: (subjectId: string, questionId: string) => void
@@ -29,14 +28,12 @@ export default function QuizPage({
   quizMessage,
   isDarkMode,
   onToggleDark,
-  unlockedSubjectIds,
   activeSubject,
   handleSelectAnswer,
   handleSubmitQuestion,
   handleSubmitSubject,
   handleGoToNextSubject,
 }: QuizPageProps) {
-  // Compute answered count for progress display
   const answeredCount = activeSubject
     ? Object.keys(quizProgress[activeSubject.id]?.answers ?? {}).length
     : 0
@@ -48,14 +45,15 @@ export default function QuizPage({
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
 
-      {/* ── Header ── */}
       <header className="topbar panel">
         <div>
-          <p className="eyebrow">ExamBuddy</p>
-          <h1>Your smart quiz companion.</h1>
+          <p className="eyebrow">ExamHelp</p>
+          <h1>Your Exam Practice Hub.</h1>
+          <p>This is a preview of the student exam experience.</p>
         </div>
 
         <div className="topbar-actions">
+          <span className="pill">Preview Only</span>
           <button
             type="button"
             className={`theme-toggle ${isDarkMode ? 'dark' : ''}`}
@@ -63,20 +61,18 @@ export default function QuizPage({
             aria-label="Toggle dark mode"
           >
             <span className="theme-toggle-knob">
-              {isDarkMode ? '🌙' : '☀️'}
+              {isDarkMode ? 'Moon' : 'Sun'}
             </span>
           </button>
         </div>
       </header>
 
-      {/* ── Main Content: Quiz ── */}
       <main className="workspace">
-        {/* Subject Sidebar */}
         <aside className="panel subject-rail">
           <div className="rail-header">
             <div>
               <p className="eyebrow">Subjects</p>
-              <h2>Play in order</h2>
+              <h2>Choose Freely</h2>
             </div>
             <span className="pill">{getSubmissionCount(quizProgress)} done</span>
           </div>
@@ -84,7 +80,6 @@ export default function QuizPage({
           <div className="subject-list">
             {questionBank.subjects.map((subject, index) => {
               const state = quizProgress[subject.id]
-              const unlocked = unlockedSubjectIds.includes(subject.id)
               const isActive = activeSubjectId === subject.id
 
               return (
@@ -92,7 +87,7 @@ export default function QuizPage({
                   key={subject.id}
                   className={[
                     'subject-tile',
-                    unlocked ? 'unlocked' : 'locked',
+                    'unlocked',
                     isActive ? 'active' : '',
                   ]
                     .filter(Boolean)
@@ -100,12 +95,9 @@ export default function QuizPage({
                   style={{ ['--subject-accent' as string]: subject.accent }}
                   type="button"
                   onClick={() => {
-                    if (unlocked) {
-                      setActiveSubjectId(subject.id)
-                      setCurrentQuestionIndex(0)
-                    }
+                    setActiveSubjectId(subject.id)
+                    setCurrentQuestionIndex(0)
                   }}
-                  disabled={!unlocked}
                 >
                   <span className="subject-order">{String(index + 1).padStart(2, '0')}</span>
                   <div>
@@ -113,11 +105,7 @@ export default function QuizPage({
                     <small>{subject.questions.length} questions</small>
                   </div>
                   <span className="subject-status">
-                    {state?.submitted
-                      ? `${state.result?.scorePercent ?? 0}%`
-                      : unlocked
-                        ? 'Open'
-                        : '🔒'}
+                    {state?.submitted ? `${state.result?.scorePercent ?? 0}%` : 'Open'}
                   </span>
                 </button>
               )
@@ -125,7 +113,6 @@ export default function QuizPage({
           </div>
         </aside>
 
-        {/* Quiz Area */}
         <section className="panel quiz-panel">
           <div className="quiz-header">
             <div>
@@ -136,10 +123,7 @@ export default function QuizPage({
 
             <div className="summary-card">
               <span>
-                Progress{' '}
-                {activeSubject
-                  ? `${answeredCount}/${totalQuestions}`
-                  : '0/0'}
+                Progress {activeSubject ? `${answeredCount}/${totalQuestions}` : '0/0'}
               </span>
               <strong>
                 {activeSubject && quizProgress[activeSubject.id]?.submitted
@@ -153,7 +137,6 @@ export default function QuizPage({
 
           {activeSubject ? (
             <>
-              {/* Progress Bar */}
               <div className="progress-bar-container">
                 <div className="progress-info">
                   <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
@@ -167,20 +150,25 @@ export default function QuizPage({
                 </div>
               </div>
 
-              {/* Question Dots */}
               <div className="question-dots">
-                {activeSubject.questions.map((q, i) => {
+                {activeSubject.questions.map((question, index) => {
                   const subjectState = quizProgress[activeSubject.id]
-                  const isAnswered = Boolean(subjectState?.answers[q.id])
-                  const isCurrent = i === currentQuestionIndex
+                  const isAnswered = Boolean(subjectState?.answers[question.id])
+                  const isCurrent = index === currentQuestionIndex
                   const isSubmitted = Boolean(subjectState?.submitted)
-                  const isQuestionSubmitted = isSubmitted || Boolean(subjectState?.submittedQuestions?.[q.id])
-                  const isCorrect = isQuestionSubmitted && subjectState?.answers[q.id] === q.correctOptionId
-                  const isIncorrect = isQuestionSubmitted && isAnswered && subjectState?.answers[q.id] !== q.correctOptionId
+                  const isQuestionSubmitted =
+                    isSubmitted || Boolean(subjectState?.submittedQuestions?.[question.id])
+                  const isCorrect =
+                    isQuestionSubmitted &&
+                    subjectState?.answers[question.id] === question.correctOptionId
+                  const isIncorrect =
+                    isQuestionSubmitted &&
+                    isAnswered &&
+                    subjectState?.answers[question.id] !== question.correctOptionId
 
                   return (
                     <button
-                      key={q.id}
+                      key={question.id}
                       type="button"
                       className={[
                         'question-dot',
@@ -188,15 +176,16 @@ export default function QuizPage({
                         !isQuestionSubmitted && isAnswered ? 'answered' : '',
                         isCorrect ? 'correct-dot' : '',
                         isIncorrect ? 'incorrect-dot' : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => setCurrentQuestionIndex(i)}
-                      aria-label={`Go to question ${i + 1}`}
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      onClick={() => setCurrentQuestionIndex(index)}
+                      aria-label={`Go to question ${index + 1}`}
                     />
                   )
                 })}
               </div>
 
-              {/* Single Question Card */}
               <div className="question-stack">
                 {(() => {
                   const question = activeSubject.questions[currentQuestionIndex]
@@ -205,13 +194,17 @@ export default function QuizPage({
                   const subjectState = quizProgress[activeSubject.id]
                   const selectedOptionId = subjectState?.answers[question.id] ?? ''
                   const isSubjectSubmitted = Boolean(subjectState?.submitted)
-                  const isQuestionSubmitted = isSubjectSubmitted || Boolean(subjectState?.submittedQuestions?.[question.id])
+                  const isQuestionSubmitted =
+                    isSubjectSubmitted || Boolean(subjectState?.submittedQuestions?.[question.id])
                   const correctOption = question.options.find(
                     (option) => option.id === question.correctOptionId,
                   )
 
                   return (
-                    <article className="question-card" key={`\${question.id}-\${currentQuestionIndex}`}>
+                    <article
+                      className="question-card"
+                      key={`${question.id}-${currentQuestionIndex}`}
+                    >
                       <div className="question-heading">
                         <span>Question {currentQuestionIndex + 1} of {activeSubject.questions.length}</span>
                         <h3>{question.prompt}</h3>
@@ -270,7 +263,8 @@ export default function QuizPage({
                       {isQuestionSubmitted ? (
                         <div className="answer-review">
                           <strong>
-                            {selectedOptionId === question.correctOptionId ? '✅ Correct answer:' : '❌ Correct answer:'} {correctOption?.text ?? 'Not available'}
+                            {selectedOptionId === question.correctOptionId ? 'Correct answer:' : 'Review:'}{' '}
+                            {correctOption?.text ?? 'Not available'}
                           </strong>
                           <p>{question.explanation}</p>
                         </div>
@@ -280,25 +274,24 @@ export default function QuizPage({
                 })()}
               </div>
 
-              {/* Navigation & Actions */}
               <div className="action-row">
                 <div className="nav-buttons">
                   <button
                     className="secondary-button"
                     type="button"
                     disabled={currentQuestionIndex === 0}
-                    onClick={() => setCurrentQuestionIndex((c) => c - 1)}
+                    onClick={() => setCurrentQuestionIndex((current) => current - 1)}
                   >
-                    ← Previous
+                    Previous
                   </button>
 
                   <button
                     className="secondary-button"
                     type="button"
                     disabled={currentQuestionIndex === activeSubject.questions.length - 1}
-                    onClick={() => setCurrentQuestionIndex((c) => c + 1)}
+                    onClick={() => setCurrentQuestionIndex((current) => current + 1)}
                   >
-                    Next →
+                    Next
                   </button>
                 </div>
 
@@ -317,7 +310,7 @@ export default function QuizPage({
                     type="button"
                     onClick={() => handleGoToNextSubject(activeSubject.id)}
                   >
-                    Next Subject →
+                    Next Subject
                   </button>
                 ) : null}
               </div>
@@ -325,7 +318,7 @@ export default function QuizPage({
           ) : (
             <div className="empty-state">
               <h3>No subjects available</h3>
-              <p>Navigate to <code>/admin</code> to import your first question set.</p>
+              <p>Navigate to <code>/admin</code> to add your first question set.</p>
             </div>
           )}
         </section>
